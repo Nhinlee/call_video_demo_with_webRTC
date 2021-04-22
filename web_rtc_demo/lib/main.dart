@@ -36,8 +36,8 @@ class _MyHomePageState extends State<MyHomePage> {
   MediaStream _localStream;
   bool _isOffer = false;
 
-  final _sdpController1 = TextEditingController();
-  final _sdpController2 = TextEditingController();
+  final _sdpController = TextEditingController();
+  final _candidateController = TextEditingController();
 
   void _initRenderer() async {
     await _localRenderer.initialize();
@@ -90,11 +90,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
     pc.onIceCandidate = (e) {
       if (e.candidate != null) {
-        print(json.encode({
+        final candidate = json.encode({
           'candidate': e.candidate,
           'sdpMid': e.sdpMid,
-          'sdpMlineIndex': e.sdpMlineIndex,
-        }));
+          'sdpMLineIndex': e.sdpMlineIndex,
+        });
+        print(candidate);
+        if(_candidateController.text.isEmpty) {
+          _candidateController.text = candidate;
+        }
       }
     };
 
@@ -114,10 +118,7 @@ class _MyHomePageState extends State<MyHomePage> {
     var desc = await _peerConnection.createOffer({'OfferToReceiveVideo': 1});
 
     // Testing Purpose
-    var session = parse(desc.sdp);
-    final sessionString = json.encode(session);
-    _sdpController1.text = sessionString.substring(0, 3000);
-    _sdpController2.text = sessionString.substring(3000, sessionString.length);
+    _sdpController.text = desc.sdp;
 
     _isOffer = true;
     _peerConnection.setLocalDescription(desc);
@@ -127,31 +128,24 @@ class _MyHomePageState extends State<MyHomePage> {
     var desc = await _peerConnection.createAnswer({'offerToReceiveVideo': 1});
 
     // Testing Purpose
-    var session = parse(desc.sdp);
-    final sessionString = json.encode(session);
-    _sdpController1.text = sessionString.substring(0, 3000);
-    _sdpController2.text = sessionString.substring(3000, sessionString.length);
+    _sdpController.text = desc.sdp;
 
     _peerConnection.setLocalDescription(desc);
   }
 
   _setRemoteDescription() async {
-    String jsonString = _sdpController1.text + _sdpController2.text;
-    var session = json.decode(jsonString);
-
-    String sdp = write(session, null);
+    String sdp = '${_sdpController.text}';
 
     var remoteDesc = RTCSessionDescription(sdp, _isOffer ? 'answer' : 'offer');
 
     await _peerConnection.setRemoteDescription(remoteDesc);
 
     // Testing Purpose
-    _sdpController1.clear();
-    _sdpController2.clear();
+    _sdpController.clear();
   }
 
   _setCandidate() async {
-    String jsonString = _sdpController1.text;
+    String jsonString = _sdpController.text;
     var session = await json.decode(jsonString);
     print(session['candidate']);
 
@@ -159,6 +153,8 @@ class _MyHomePageState extends State<MyHomePage> {
         session['candidate'], session['sdpMid'], session['sdpMlineIndex']);
 
     await _peerConnection.addCandidate(candidate);
+
+    _sdpController.clear();
   }
 
   @override
@@ -174,8 +170,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _remoteRenderer.dispose();
 
     _localStream.dispose();
-    _sdpController1.dispose();
-    _sdpController2.dispose();
+    _sdpController.dispose();
     super.dispose();
   }
 
@@ -191,9 +186,10 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             getVideoRenderer(size),
             offerAndAnswerButton(),
-            sdpCandidateTF(_sdpController1),
-            sdpCandidateTF(_sdpController2),
+            sdpCandidateTF(_sdpController),
+            sdpCandidateTF(_candidateController),
             sdpCandidateButtons(),
+            SizedBox(height: 50),
           ],
         ),
       ),
