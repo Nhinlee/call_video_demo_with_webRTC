@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:sdp_transform/sdp_transform.dart';
 
 void main() {
   runApp(MyApp());
@@ -150,7 +149,7 @@ class _MyHomePageState extends State<MyHomePage> {
     print(session['candidate']);
 
     var candidate = RTCIceCandidate(
-        session['candidate'], session['sdpMid'], session['sdpMlineIndex']);
+        session['candidate'], session['sdpMid'], session['sdpMLineIndex']);
 
     await _peerConnection.addCandidate(candidate);
 
